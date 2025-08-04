@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar, Clock, Users, Phone, Mail, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const Prenotazioni = () => {
   const { toast } = useToast();
@@ -36,27 +37,49 @@ const Prenotazioni = () => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    try {
+      const { error } = await supabase
+        .from('reservations')
+        .insert([
+          {
+            name: `${formData.nome} ${formData.cognome}`,
+            email: formData.email,
+            phone: formData.telefono,
+            date: formData.data,
+            time: formData.ora,
+            guests: parseInt(formData.persone),
+            notes: formData.note,
+            status: 'pending'
+          }
+        ]);
 
-    toast({
-      title: "Prenotazione inviata!",
-      description: "Ti contatteremo entro 30 minuti per confermare la disponibilità.",
-    });
+      if (error) throw error;
 
-    // Reset form
-    setFormData({
-      nome: "",
-      cognome: "",
-      email: "",
-      telefono: "",
-      data: "",
-      ora: "",
-      persone: "",
-      note: ""
-    });
+      toast({
+        title: "Prenotazione inviata!",
+        description: "Ti contatteremo entro 30 minuti per confermare la disponibilità.",
+      });
 
-    setIsSubmitting(false);
+      // Reset form
+      setFormData({
+        nome: "",
+        cognome: "",
+        email: "",
+        telefono: "",
+        data: "",
+        ora: "",
+        persone: "",
+        note: ""
+      });
+    } catch (error) {
+      toast({
+        title: "Errore",
+        description: "Errore nell'invio della prenotazione. Riprova più tardi.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const orariDisponibili = [
