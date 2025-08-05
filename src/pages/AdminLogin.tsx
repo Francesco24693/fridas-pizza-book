@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,11 +8,35 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 
 const AdminLogin = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("admin@frida.it");
+  const [password, setPassword] = useState("admin1@");
   const [loading, setLoading] = useState(false);
+  const [hasAdmins, setHasAdmins] = useState<boolean | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    checkAdminExists();
+  }, []);
+
+  const checkAdminExists = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('admin_users')
+        .select('id')
+        .limit(1);
+      
+      if (error) {
+        console.error('Error checking admin users:', error);
+        setHasAdmins(false);
+      } else {
+        setHasAdmins(data && data.length > 0);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      setHasAdmins(false);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,6 +65,57 @@ const AdminLogin = () => {
       toast({
         title: "Errore",
         description: "Errore durante l'accesso",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateFirstAdmin = async () => {
+    setLoading(true);
+    
+    try {
+      // Registra l'utente in Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (authError) {
+        toast({
+          title: "Errore nella registrazione",
+          description: authError.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (authData.user) {
+        // Usa la funzione per creare il primo admin
+        const { error: adminError } = await supabase.rpc('create_first_admin', {
+          admin_email: email,
+          admin_user_id: authData.user.id
+        });
+
+        if (adminError) {
+          toast({
+            title: "Errore nella creazione admin",
+            description: adminError.message,
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Admin creato con successo",
+            description: "Ora puoi accedere con le tue credenziali",
+          });
+          setHasAdmins(true);
+        }
+      }
+    } catch (error) {
+      toast({
+        title: "Errore",
+        description: "Errore durante la creazione dell'admin",
         variant: "destructive",
       });
     } finally {
@@ -83,13 +158,33 @@ const AdminLogin = () => {
                 required
               />
             </div>
-            <Button 
-              type="submit" 
-              className="w-full"
-              disabled={loading}
-            >
-              {loading ? "Accesso in corso..." : "Accedi"}
-            </Button>
+            
+            {hasAdmins === false && (
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground mb-2">
+                  Nessun amministratore trovato. Crea il primo admin:
+                </p>
+                <Button 
+                  type="button" 
+                  onClick={handleCreateFirstAdmin}
+                  className="w-full"
+                  disabled={loading}
+                  variant="outline"
+                >
+                  {loading ? "Creazione admin..." : "Crea primo admin"}
+                </Button>
+              </div>
+            )}
+            
+            {hasAdmins !== false && (
+              <Button 
+                type="submit" 
+                className="w-full"
+                disabled={loading}
+              >
+                {loading ? "Accesso in corso..." : "Accedi"}
+              </Button>
+            )}
           </form>
         </CardContent>
       </Card>
