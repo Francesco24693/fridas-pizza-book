@@ -49,11 +49,19 @@ const AdminLogin = () => {
       });
 
       if (error) {
-        toast({
-          title: "Errore di accesso",
-          description: error.message,
-          variant: "destructive",
-        });
+        if (error.message.includes('Email not confirmed')) {
+          toast({
+            title: "Email non confermata",
+            description: "Per il testing, disabilita 'Confirm email' nelle impostazioni Supabase Authentication → Settings",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Errore di accesso",
+            description: error.message,
+            variant: "destructive",
+          });
+        }
       } else {
         toast({
           title: "Accesso effettuato",
