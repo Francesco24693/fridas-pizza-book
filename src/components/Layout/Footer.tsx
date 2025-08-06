@@ -43,6 +43,9 @@ const Footer = () => {
               <Link to="/prenotazioni" className="text-muted-foreground hover:text-primary transition-colors">
                 Prenotazioni
               </Link>
+              <Link to="/galleria" className="text-muted-foreground hover:text-primary transition-colors">
+                Galleria
+              </Link>
               <Link to="/eventi" className="text-muted-foreground hover:text-primary transition-colors">
                 Eventi
               </Link>
